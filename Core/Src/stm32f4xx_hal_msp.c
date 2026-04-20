@@ -55,8 +55,6 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-static uint8_t key_up = 1;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,64 +95,5 @@ void HAL_MspInit(void)
 }
 
 /* USER CODE BEGIN 1 */
-
-void KEY_Init(void)
-{
-    GPIO_InitTypeDef GPIO_Initure;
-
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOH_CLK_ENABLE();
-
-    GPIO_Initure.Pin = KEY0_PIN;
-    GPIO_Initure.Mode = GPIO_MODE_INPUT;
-    GPIO_Initure.Pull = GPIO_PULLDOWN;
-    GPIO_Initure.Speed = GPIO_SPEED_HIGH;
-    HAL_GPIO_Init(KEY0_PORT, &GPIO_Initure);
-
-    GPIO_Initure.Pin = KEY1_PIN;
-    GPIO_Initure.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(KEY1_PORT, &GPIO_Initure);
-
-    GPIO_Initure.Pin = KEY2_PIN | WK_UP_PIN;
-    HAL_GPIO_Init(KEY2_PORT, &GPIO_Initure);
-}
-
-uint8_t KEY_Scan(uint8_t mode)
-{
-    if (mode == 1) key_up = 1;
-    if (key_up && (HAL_GPIO_ReadPin(KEY0_PORT, KEY0_PIN) == GPIO_PIN_RESET ||
-                   HAL_GPIO_ReadPin(KEY1_PORT, KEY1_PIN) == GPIO_PIN_RESET ||
-                   HAL_GPIO_ReadPin(KEY2_PORT, KEY2_PIN) == GPIO_PIN_RESET ||
-                   HAL_GPIO_ReadPin(WK_UP_PORT, WK_UP_PIN) == GPIO_PIN_SET))
-    {
-        HAL_Delay(10);
-        key_up = 0;
-        if (HAL_GPIO_ReadPin(KEY0_PORT, KEY0_PIN) == GPIO_PIN_RESET)
-            return KEY0_PRES;
-        else if (HAL_GPIO_ReadPin(KEY1_PORT, KEY1_PIN) == GPIO_PIN_RESET)
-            return KEY1_PRES;
-        else if (HAL_GPIO_ReadPin(KEY2_PORT, KEY2_PIN) == GPIO_PIN_RESET)
-            return KEY2_PRES;
-        else if (HAL_GPIO_ReadPin(WK_UP_PORT, WK_UP_PIN) == GPIO_PIN_SET)
-            return WKUP_PRES;
-    }
-    else if (HAL_GPIO_ReadPin(KEY0_PORT, KEY0_PIN) == GPIO_PIN_SET &&
-             HAL_GPIO_ReadPin(KEY1_PORT, KEY1_PIN) == GPIO_PIN_SET &&
-             HAL_GPIO_ReadPin(KEY2_PORT, KEY2_PIN) == GPIO_PIN_SET &&
-             HAL_GPIO_ReadPin(WK_UP_PORT, WK_UP_PIN) == GPIO_PIN_RESET)
-    {
-        key_up = 1;
-    }
-    return 0;
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if(GPIO_Pin == GPIO_PIN_13)
-    {
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    }
-}
 
 /* USER CODE END 1 */
