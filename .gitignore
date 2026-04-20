@@ -1,0 +1,22 @@
+# Ignore build artifacts and generated files
+*.axf
+*.hex
+*.map
+*.o
+*.obj
+*.htm
+*.log
+*.log.lock
+*.dep
+*.d
+*.bin
+*.elf
+*.ilk
+# Keil/MDK generated directories
+DebugConfig/
+# Keil Assistant files
+.vscode/keil-assistant.log
+.vscode/uv4.log.lock
+# Generated build directories
+test1/*.o
+# Keep source and config files under version control
