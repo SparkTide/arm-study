@@ -87,7 +87,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -184,6 +184,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  static uint32_t last_key_time = 0;
+  uint32_t current_time = HAL_GetTick();
+  
+  if (GPIO_Pin == GPIO_PIN_12 && (current_time - last_key_time > 50))
+  {
+    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_0);
+    last_key_time = current_time;
+  }
+}
 
 /* USER CODE END 4 */
 
