@@ -1,8 +1,0 @@
-{
-    "chat.tools.terminal.autoApprove": {
-        "/^Set-Location 'D:\\\\Code_Environment\\\\Projects\\\\test1' ; & 'C:\\\\Program Files\\\\GitHub CLI\\\\gh\\.exe' repo create 'arm实验及期末大作业' --public --source \\. --remote origin2 --push$/": {
-            "approve": true,
-            "matchCommandLine": true
-        }
-    }
-}
