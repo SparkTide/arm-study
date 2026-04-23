@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pio run:*)"
+      "Bash(pio run:*)",
+      "Bash(npx --version)",
+      "Bash(uvx --version)",
+      "Bash(pip --version)",
+      "Bash(npx -y @modelcontextprotocol/server-sequential-thinking --help)",
+      "Bash(npm config *)",
+      "Bash(icacls \"D:\\\\Code_Environment\\\\nodejs\\\\node_cache\")"
     ]
   }
 }
