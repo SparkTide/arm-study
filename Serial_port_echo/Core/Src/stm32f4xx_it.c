@@ -54,7 +54,7 @@
 
 /* USER CODE END 0 */
 
-/* /* External variables --------------------------------------------------------*/
+/* External variables --------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern uint8_t rx_buffer[];
