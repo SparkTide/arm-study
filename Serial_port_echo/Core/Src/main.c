@@ -105,7 +105,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     /* 检查是否有接收到新数据 */
-    if (rx_flag)
+  if (rx_flag)
     {
       /* 将接收到的数据原样发送回去 */
       HAL_UART_Transmit(&huart1, &rx_buffer[rx_index-1], 1, 100);
