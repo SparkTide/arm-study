@@ -45,19 +45,14 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 #define RX_BUFFER_SIZE 256
 uint8_t rx_buffer[RX_BUFFER_SIZE];
-uint16_t rx_index = 0;          // 当前写入位置
-uint16_t string_start = 0;      // 当前字符串起始位置
-uint16_t string_length = 0;     // 当前字符串长度
-uint8_t rx_flag = 0;            // 有新字符标志
-uint8_t string_complete = 0;    // 字符串完成标志（收到回车）
+volatile uint16_t rx_write_idx = 0;  // 写指针（ISR更新）
+uint16_t rx_read_idx = 0;            // 读指针（主循环更新）
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-/* USER CODE BEGIN PFP */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -96,8 +91,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  /* 启动串口接收，开启中断接收模式 */
-  HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
+  HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_write_idx], 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,64 +101,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /* 检查是否有接收到新数据 */
-    if (rx_flag)
+    if (rx_read_idx != rx_write_idx)
     {
-      // 如果是命令行完成（收到回车），发送整个字符串
-      if (string_complete)
+      uint8_t ch = rx_buffer[rx_read_idx];
+      rx_read_idx = (rx_read_idx + 1) % RX_BUFFER_SIZE;
+
+      if (ch == '\r' || ch == '\n')
       {
-        // 计算字符串起始位置
-        uint16_t start_pos = 0;
-        if (rx_index >= string_length)
-        {
-          start_pos = rx_index - string_length;
-        }
-        else
-        {
-          // 处理环形缓冲区回绕
-          start_pos = RX_BUFFER_SIZE - (string_length - rx_index);
-        }
-        
-        // 发送完整字符串
-        if (string_length > 0)
-        {
-          // 先发送字符串内容
-          uint16_t i = start_pos;
-          for (uint16_t count = 0; count < string_length; count++)
-          {
-            HAL_UART_Transmit(&huart1, &rx_buffer[i], 1, 100);
-            i++;
-            if (i >= RX_BUFFER_SIZE) i = 0;
-          }
-          
-          // 发送换行符
-          uint8_t newline[] = {'\r', '\n'};
-          HAL_UART_Transmit(&huart1, newline, 2, 100);
-        }
-        
-        // 重置状态
-        string_complete = 0;
-        string_length = 0;
+        uint8_t newline[] = {'\r', '\n'};
+        HAL_UART_Transmit(&huart1, newline, 2, 100);
       }
       else
       {
-        // 单字符模式：回显刚接收的字符（测试用）
-        HAL_UART_Transmit(&huart1, &rx_buffer[rx_index], 1, 100);
-        
-        // 增加字符串长度（如果不是回车符）
-        string_length++;
+        HAL_UART_Transmit(&huart1, &ch, 1, 100);
       }
-      
-      // 递增索引并处理环形缓冲区
-      rx_index++;
-      if (rx_index >= RX_BUFFER_SIZE)
-      {
-        rx_index = 0;
-      }
-      
-      /* 清除接收标志，重新启动接收 */
-      rx_flag = 0;
-      HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
     }
     /* USER CODE END 3 */
   }
@@ -267,24 +217,12 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-/**
-  * @brief HAL_UART_RxCpltCallback - 串口接收完成回调函数
-  * @param huart: UART句柄指针
-  * @retval None
-  */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART1)
   {
-    // HAL已经将接收到的数据存储在rx_buffer[rx_index]
-    rx_flag = 1;
-    
-    // 如果是回车符，标记字符串完成
-    if (rx_buffer[rx_index] == 13 || rx_buffer[rx_index] == 10)
-    {
-      string_complete = 1;
-    }
-    // 注意：string_length在主循环中增加，避免竞态条件
+    rx_write_idx = (rx_write_idx + 1) % RX_BUFFER_SIZE;
+    HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_write_idx], 1);
   }
 }
 
