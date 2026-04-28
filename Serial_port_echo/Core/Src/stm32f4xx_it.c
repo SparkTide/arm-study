@@ -59,7 +59,10 @@ extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern uint8_t rx_buffer[];
 extern uint16_t rx_index;
+extern uint16_t string_start;
+extern uint16_t string_length;
 extern uint8_t rx_flag;
+extern uint8_t string_complete;
 /* USER CODE END EV */
 
 /******************************************************************************/

@@ -45,8 +45,11 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 #define RX_BUFFER_SIZE 256
 uint8_t rx_buffer[RX_BUFFER_SIZE];
-uint16_t rx_index = 0;
-uint8_t rx_flag = 0;
+uint16_t rx_index = 0;          // 当前写入位置
+uint16_t string_start = 0;      // 当前字符串起始位置
+uint16_t string_length = 0;     // 当前字符串长度
+uint8_t rx_flag = 0;            // 有新字符标志
+uint8_t string_complete = 0;    // 字符串完成标志（收到回车）
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,17 +108,63 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     /* 检查是否有接收到新数据 */
-  if (rx_flag)
+    if (rx_flag)
     {
-      /* 将接收到的数据原样发送回去 */
-      HAL_UART_Transmit(&huart1, &rx_buffer[rx_index-1], 1, 100);
-      rx_flag = 0;
-      
-      /* 如果缓冲区未满，继续接收下一个字节 */
-      if (rx_index < RX_BUFFER_SIZE)
+      // 如果是命令行完成（收到回车），发送整个字符串
+      if (string_complete)
       {
-        HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
+        // 计算字符串起始位置
+        uint16_t start_pos = 0;
+        if (rx_index >= string_length)
+        {
+          start_pos = rx_index - string_length;
+        }
+        else
+        {
+          // 处理环形缓冲区回绕
+          start_pos = RX_BUFFER_SIZE - (string_length - rx_index);
+        }
+        
+        // 发送完整字符串
+        if (string_length > 0)
+        {
+          // 先发送字符串内容
+          uint16_t i = start_pos;
+          for (uint16_t count = 0; count < string_length; count++)
+          {
+            HAL_UART_Transmit(&huart1, &rx_buffer[i], 1, 100);
+            i++;
+            if (i >= RX_BUFFER_SIZE) i = 0;
+          }
+          
+          // 发送换行符
+          uint8_t newline[] = {'\r', '\n'};
+          HAL_UART_Transmit(&huart1, newline, 2, 100);
+        }
+        
+        // 重置状态
+        string_complete = 0;
+        string_length = 0;
       }
+      else
+      {
+        // 单字符模式：回显刚接收的字符（测试用）
+        HAL_UART_Transmit(&huart1, &rx_buffer[rx_index], 1, 100);
+        
+        // 增加字符串长度（如果不是回车符）
+        string_length++;
+      }
+      
+      // 递增索引并处理环形缓冲区
+      rx_index++;
+      if (rx_index >= RX_BUFFER_SIZE)
+      {
+        rx_index = 0;
+      }
+      
+      /* 清除接收标志，重新启动接收 */
+      rx_flag = 0;
+      HAL_UART_Receive_IT(&huart1, &rx_buffer[rx_index], 1);
     }
     /* USER CODE END 3 */
   }
@@ -139,14 +188,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -156,10 +201,10 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
@@ -231,8 +276,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART1)
   {
-    rx_index++;
+    // HAL已经将接收到的数据存储在rx_buffer[rx_index]
     rx_flag = 1;
+    
+    // 如果是回车符，标记字符串完成
+    if (rx_buffer[rx_index] == 13 || rx_buffer[rx_index] == 10)
+    {
+      string_complete = 1;
+    }
+    // 注意：string_length在主循环中增加，避免竞态条件
   }
 }
 
