@@ -1,9 +1,9 @@
 #include <WiFi.h>
 #include <AsyncMqttClient.h>
-#define WIFI_SSID "yourSSID"
-#define WIFI_PASSWORD "yourpass"
+#define WIFI_SSID "PRTS终端"//热点名
+#define WIFI_PASSWORD "djwnaocm"//热点密码
 
-#define MQTT_HOST IPAddress(192, 168, 1, 10)
+#define MQTT_HOST "broker.emqx.io"//服务器地址
 #define MQTT_PORT 1883
 
 AsyncMqttClient mqttClient;
@@ -11,7 +11,6 @@ TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
 
 
-Serial.begin(115200);
 void connectToWifi() {
   Serial.println("Connecting to Wi-Fi...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -46,7 +45,7 @@ void onMqttConnect(bool sessionPresent) {
   uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
   Serial.print("Subscribing at QoS 2, packetId: ");
   Serial.println(packetIdSub);
-  mqttClient.publish("test/lol", 0, true, "test 1");//
+  mqttClient.publish("Loyalty/lol", 0, true, "fFor the Emperor");//topic和内容
   Serial.println("Publishing at QoS 0");
   uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
   Serial.print("Publishing at QoS 1, packetId: ");
