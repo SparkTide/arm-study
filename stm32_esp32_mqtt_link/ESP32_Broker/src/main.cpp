@@ -45,7 +45,7 @@ void onMqttConnect(bool sessionPresent) {
   uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
   Serial.print("Subscribing at QoS 2, packetId: ");
   Serial.println(packetIdSub);
-  mqttClient.publish("Loyalty/lol", 0, true, "fFor the Emperor");//topic和内容
+  mqttClient.publish("Loyalty/lol", 0, true, "For the Emperor");//topic和内容
   Serial.println("Publishing at QoS 0");
   uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
   Serial.print("Publishing at QoS 1, packetId: ");
